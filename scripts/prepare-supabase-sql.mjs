@@ -32,6 +32,57 @@ console.log(`SQL de instalación preparado en ${output}. Todavía no se aplicó 
 // Migraciones posteriores: cada una se aplica completa, en una transacción.
 const laterMigrations = [
   {
+    migration: "supabase/migrations/20261001220000_network.sql",
+    output: "supabase/setup-stage-12-network.sql",
+    check: `-- Tres funciones con anonymous_can_execute=true; la tabla con rls_enabled=true.
+select p.proname as function_name,
+       has_function_privilege('anon', p.oid, 'EXECUTE') as anonymous_can_execute
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname in ('resolve_barbershop_slug', 'list_network_barbershops', 'list_network_districts')
+order by p.proname;
+select relrowsecurity as rls_enabled from pg_class where oid = 'public.barbershop_slug_history'::regclass;`,
+  },
+  {
+    migration: "supabase/migrations/20261001230000_my_visits.sql",
+    output: "supabase/setup-stage-13-my-visits.sql",
+    check: `-- Dos funciones con anonymous_can_execute=false; linking_enabled=false hasta
+-- ejecutar supabase/enable-my-visits.sql.
+select p.proname as function_name,
+       has_function_privilege('anon', p.oid, 'EXECUTE') as anonymous_can_execute
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.proname in ('get_my_visits', 'save_my_profile')
+order by p.proname;
+select private.verified_email_since() is not null as linking_enabled;`,
+  },
+  {
+    migration: "supabase/migrations/20261001210000_workers_multi_owner.sql",
+    output: "supabase/setup-stage-11-workers.sql",
+    check: `-- one_active_barber_index_exists=false y limit_trigger_exists=true.
+select to_regclass('public.organization_members_one_active_barber_idx') is not null as one_active_barber_index_exists,
+       exists (
+         select 1 from pg_trigger
+         where tgname = 'organization_members_worker_owner_limit'
+           and tgrelid = 'public.organization_members'::regclass
+       ) as limit_trigger_exists;`,
+  },
+  {
+    migration: "supabase/migrations/20261001200000_accounts_pro_terms.sql",
+    output: "supabase/setup-stage-10-accounts-pro.sql",
+    check: `-- Tres funciones con anonymous_can_execute=false y members_can_execute=true;
+-- owners_without_pro debe ser 0.
+select p.proname as function_name,
+       has_function_privilege('anon', p.oid, 'EXECUTE') as anonymous_can_execute,
+       has_function_privilege('authenticated', p.oid, 'EXECUTE') as members_can_execute
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.proname in ('create_business', 'accept_terms', 'get_my_account')
+order by p.proname;
+select count(distinct m.user_id) as owners_without_pro
+from public.organization_members m
+where m.role = 'owner'
+  and not exists (select 1 from public.subscriptions s where s.user_id = m.user_id);`,
+  },
+  {
     migration: "supabase/migrations/20261001190000_reports.sql",
     output: "supabase/setup-stage-9-reports.sql",
     check: `-- Ambas funciones: anonymous_can_execute=false, members_can_execute=true,

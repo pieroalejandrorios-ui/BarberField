@@ -13,7 +13,7 @@ const USERS = {
 const deniedByPermissions = hasSqlState(SQLSTATE.insufficientPrivilege);
 const invalidInput = hasSqlState(SQLSTATE.invalidParameterValue);
 const duplicate = hasSqlState(SQLSTATE.uniqueViolation);
-const activeWorker = hasSqlState(SQLSTATE.activeWorker);
+const workerOwnerLimit = hasSqlState(SQLSTATE.workerOwnerLimit);
 
 let db: PGlite;
 
@@ -25,7 +25,7 @@ async function createBusiness(
 ): Promise<string> {
   return runAs(db, userId, async (tx) => {
     const { rows } = await tx.query<{ id: string }>(
-      "select public.create_business($1, $2, $3) as id",
+      "select public.create_business($1, $2, $3, '2026-10-01') as id",
       [name, address, slug],
     );
     return rows[0].id;
@@ -100,7 +100,7 @@ describe("create_business", () => {
     await assert.rejects(
       db.transaction(async (tx) => {
         await tx.query("select set_config('role', 'authenticated', true)");
-        await tx.query("select public.create_business('Sin sesión', 'Calle 1', 'sin-sesion')");
+        await tx.query("select public.create_business('Sin sesión', 'Calle 1', 'sin-sesion', '2026-10-01')");
       }),
       deniedByPermissions,
     );
@@ -140,21 +140,23 @@ describe("create_business", () => {
     assert.equal((await db.query("select 1 from public.organizations")).rows.length, 0);
   });
 
-  test("un trabajador activo no crea negocios; uno desactivado sí", async () => {
+  // Etapa 11: un trabajador activo también puede crear su negocio (pasa a Pro).
+  test("un trabajador activo o desactivado puede crear su negocio", async () => {
     const orgId = await createBusiness(USERS.owner, "Norte", "Calle 1", "norte");
     await addWorker(orgId, USERS.worker);
     await addWorker(orgId, USERS.formerWorker, false);
 
-    await assert.rejects(createBusiness(USERS.worker, "Propia", "Calle 2", "propia"), activeWorker);
-    assert.equal((await db.query("select 1 from public.organizations")).rows.length, 1);
+    const own = await createBusiness(USERS.worker, "Propia", "Calle 2", "propia");
+    assert.equal(await count(USERS.worker, "select * from public.organizations"), 2);
+    assert.equal(await count(USERS.worker, "select * from public.organizations where id = $1", [own]), 1);
 
-    const own = await createBusiness(USERS.formerWorker, "Nueva", "Calle 3", "nueva");
-    assert.equal(await count(USERS.formerWorker, "select * from public.organizations where id = $1", [own]), 1);
+    const other = await createBusiness(USERS.formerWorker, "Nueva", "Calle 3", "nueva");
+    assert.equal(await count(USERS.formerWorker, "select * from public.organizations where id = $1", [other]), 1);
   });
 
   test("un anónimo no puede ejecutar la función", async () => {
     await assert.rejects(
-      runAs(db, null, (tx) => tx.query("select public.create_business('A', 'B', 'abc')")),
+      runAs(db, null, (tx) => tx.query("select public.create_business('A', 'B', 'abc', '2026-10-01')")),
       deniedByPermissions,
     );
   });
@@ -191,26 +193,28 @@ describe("membresías", () => {
     );
   });
 
-  test("un trabajador activo pertenece a un solo negocio", async () => {
-    const north = await createBusiness(USERS.owner, "Norte", "Calle 1", "norte");
-    const south = await createBusiness(USERS.outsider, "Sur", "Calle 2", "sur");
-    await addWorker(north, USERS.worker);
+  // Etapa 11: hasta 3 dueños distintos; el trigger lo valida incluso en
+  // escrituras directas.
+  test("un trabajador activo trabaja para como máximo 3 dueños distintos", async () => {
+    const owners = [USERS.owner, USERS.outsider, USERS.formerWorker, "00000000-0000-4000-8000-0000000000a5"];
+    await db.query("insert into auth.users (id) values ($1)", [owners[3]]);
+    const orgs: string[] = [];
+    for (const [index, owner] of owners.entries()) {
+      orgs.push(await createBusiness(owner, `Negocio ${index}`, "Calle 1", `negocio-${index}`));
+    }
 
-    await assert.rejects(addWorker(south, USERS.worker), duplicate);
-    // Desactivado en el primero, puede trabajar en otro.
+    for (const org of orgs.slice(0, 3)) await addWorker(org, USERS.worker);
+    await assert.rejects(addWorker(orgs[3], USERS.worker), workerOwnerLimit);
+    await addWorker(orgs[3], USERS.worker, false);
+    const reactivate = "update public.organization_members set is_active = true where organization_id = $1 and user_id = $2";
+    await assert.rejects(db.query(reactivate, [orgs[3], USERS.worker]), workerOwnerLimit);
+
+    // Al dejar uno, puede activarse en el cuarto.
     await db.query(
       "update public.organization_members set is_active = false where organization_id = $1 and user_id = $2",
-      [north, USERS.worker],
+      [orgs[0], USERS.worker],
     );
-    await addWorker(south, USERS.worker);
-    // Y no puede reactivarse en el primero mientras siga activo en el segundo.
-    await assert.rejects(
-      db.query(
-        "update public.organization_members set is_active = true where organization_id = $1 and user_id = $2",
-        [north, USERS.worker],
-      ),
-      duplicate,
-    );
+    await db.query(reactivate, [orgs[3], USERS.worker]);
   });
 });
 

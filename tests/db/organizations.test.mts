@@ -45,6 +45,9 @@ async function seed(database: PGlite): Promise<void> {
 
     insert into public.barbershop_members (organization_id, barbershop_id, user_id) values
       ('${ORG_A}', '${SHOP_A1}', '${USERS.barberA}');
+
+    -- Desde la etapa 10 las acciones de dueño exigen cuenta Pro.
+    insert into public.subscriptions (user_id) values ('${USERS.ownerA}'), ('${USERS.ownerB}');
   `);
 }
 

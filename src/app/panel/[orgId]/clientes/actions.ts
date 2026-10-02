@@ -30,7 +30,7 @@ function readValues(formData: FormData): CustomerValues {
     const value = formData.get(name);
     return typeof value === "string" ? value : "";
   };
-  return { fullName: text("fullName"), dni: text("dni"), phone: text("phone") };
+  return { fullName: text("fullName"), dni: text("dni"), phone: text("phone"), email: text("email") };
 }
 
 export async function createCustomer(
@@ -95,6 +95,7 @@ export async function createCustomer(
       full_name: data.fullName,
       dni: data.dni,
       phone: data.phone,
+      email: data.email,
       consent_by: userId,
     })
     .select("id")
@@ -145,7 +146,12 @@ export async function updateCustomer(
   const { supabase } = await requireUser();
   const { data, error } = await supabase
     .from("customers")
-    .update({ full_name: result.data.fullName, dni: result.data.dni, phone: result.data.phone })
+    .update({
+      full_name: result.data.fullName,
+      dni: result.data.dni,
+      phone: result.data.phone,
+      email: result.data.email,
+    })
     .eq("organization_id", business.id)
     .eq("id", customerId)
     .select("id");

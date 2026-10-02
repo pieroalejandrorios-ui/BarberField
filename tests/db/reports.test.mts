@@ -90,8 +90,8 @@ beforeEach(async () => {
   for (const user of Object.values(USERS)) {
     await db.query("insert into auth.users (id, email) values ($1, $2)", [user.id, user.email]);
   }
-  [{ id: orgA }] = await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte', 'Calle 1', 'norte') as id");
-  [{ id: orgB }] = await as<{ id: string }>(USERS.ownerB.id, "select public.create_business('Sur', 'Calle 2', 'sur') as id");
+  [{ id: orgA }] = await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte', 'Calle 1', 'norte', '2026-10-01') as id");
+  [{ id: orgB }] = await as<{ id: string }>(USERS.ownerB.id, "select public.create_business('Sur', 'Calle 2', 'sur', '2026-10-01') as id");
   for (const user of [USERS.worker, USERS.formerWorker]) {
     await as(USERS.owner.id, "select * from public.add_worker_by_email($1, $2)", [orgA, user.email]);
   }
@@ -257,7 +257,7 @@ describe("seguridad del reporte", () => {
     await assert.rejects(detail(DAY, DAY, { org: orgB }), denied);
 
     // Segundo negocio del mismo dueño: vacío y sin acceso a miembros del primero.
-    const [{ id: orgA2 }] = await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte 2', 'Calle 3', 'norte-2') as id");
+    const [{ id: orgA2 }] = await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte 2', 'Calle 3', 'norte-2', '2026-10-01') as id");
     assert.equal((await report(DAY, DAY, null, USERS.owner.id, orgA2)).totals.visits, 0);
     await assert.rejects(report(DAY, DAY, USERS.worker.id, USERS.owner.id, orgA2), invalid);
     await assert.rejects(report(DAY, DAY, USERS.ownerB.id), invalid);

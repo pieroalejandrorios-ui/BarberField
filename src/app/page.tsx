@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Brand } from "@/components/brand";
+import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { FixedCta } from "@/components/fixed-cta";
 import { buttonClass, secondaryButtonClass } from "@/components/ui";
 
@@ -26,21 +26,7 @@ const questions = [
 
 export default function Home() {
   return <div className="min-h-screen bg-brand-canvas pb-28 text-brand-ink">
-    <header className="border-b border-brand-ink/10">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-4 sm:px-8">
-        <Link href="/" aria-label="Barber Field, inicio" className="flex min-h-11 items-center gap-3 font-semibold tracking-tight">
-          <Brand />
-        </Link>
-        <Link href="/login" className="inline-flex min-h-11 items-center rounded-xl px-2 text-sm font-semibold lg:order-3">Iniciar sesión <span aria-hidden="true" className="ml-2">↗</span></Link>
-        <nav aria-label="Navegación principal" className="w-full lg:w-auto">
-          <ul className="flex flex-wrap gap-x-5 text-sm text-[#43574b]">
-            <li><a href="#funciones" className="inline-flex min-h-11 items-center">Funciones</a></li>
-            <li><a href="#como-funciona" className="inline-flex min-h-11 items-center">Cómo funciona</a></li>
-            <li><a href="#preguntas" className="inline-flex min-h-11 items-center">Preguntas</a></li>
-          </ul>
-        </nav>
-      </div>
-    </header>
+    <SiteHeader />
 
     <main id="main-content" tabIndex={-1}>
       <section aria-labelledby="hero-heading" className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
@@ -67,6 +53,8 @@ export default function Home() {
         </div>
       </section>
 
+      <section aria-labelledby="network-heading" className="mx-auto max-w-6xl px-5 pb-14 sm:px-8"><div className="flex flex-col items-start justify-between gap-5 rounded-[2rem] border border-brand-line bg-white p-6 sm:flex-row sm:items-center sm:p-8"><div><p className="text-xs font-semibold tracking-[0.16em] uppercase text-brand-leaf">Red de barberías</p><h2 id="network-heading" className="mt-2 text-2xl font-semibold tracking-tight">¿Buscas dónde cortarte?</h2><p className="mt-2 max-w-xl text-brand-muted">Explora barberías por nombre, distrito o servicio y mira sus precios, horarios y fotos.</p></div><Link href="/barberias" className={primary}>Explorar barberías <span aria-hidden="true" className="ml-4">↗</span></Link></div></section>
+
       <section id="funciones" aria-labelledby="features-heading" className="scroll-mt-6 border-y border-brand-ink/10 bg-white/60">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
           <p className="text-xs font-semibold tracking-[0.16em] uppercase text-brand-leaf">Menos apuntes, más claridad</p>
@@ -91,7 +79,7 @@ export default function Home() {
 
       <section aria-labelledby="start-heading" className="bg-brand-ink px-5 py-14 text-brand-canvas sm:px-8"><div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center"><div><h2 id="start-heading" className="text-3xl font-semibold tracking-tight">Que la próxima visita también cuente.</h2><p className="mt-3 text-[#d1dbbf]">Empieza por tu barbería. El premio lo pones tú.</p></div><Link href="/registro" className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-brand-accent px-6 py-3 text-sm font-semibold text-brand-ink hover:bg-[#eff6d6]">Crear cuenta <span aria-hidden="true" className="ml-4">↗</span></Link></div></section>
     </main>
-    <footer className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-6 text-sm sm:px-8"><p className="font-semibold">Barber Field</p><p className="text-brand-muted">Clientes, visitas y premios. A tu manera.</p><Link href="/login" className="inline-flex min-h-11 items-center underline underline-offset-4">Iniciar sesión</Link></footer>
+    <SiteFooter />
     <FixedCta href="/registro" label="Crear mi cuenta" note="Cada experiencia cuenta. Una razón más para volver" />
   </div>;
 }

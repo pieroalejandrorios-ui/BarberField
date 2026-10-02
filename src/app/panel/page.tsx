@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { buttonClass } from "@/components/ui";
+import { buttonClass, secondaryButtonClass } from "@/components/ui";
 import { getMyBusinesses, requireUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Mis barberías · Barber Field" };
@@ -18,9 +18,17 @@ export default async function PanelPage() {
     return (
       <section className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold">Bienvenido</h1>
-        <p className="text-brand-muted">Aún no tienes una barbería registrada.</p>
-        <Link href="/panel/nuevo" className={buttonClass}>
-          Crear mi barbería
+        <p className="text-brand-muted">Consulta tus visitas en las barberías donde te atiendes o crea tu propia barbería.</p>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Link href="/panel/mis-visitas" className={`${buttonClass} sm:w-auto`}>
+            Ver mis visitas
+          </Link>
+          <Link href="/panel/nuevo" className={`${secondaryButtonClass} sm:w-auto`}>
+            Crear mi barbería
+          </Link>
+        </div>
+        <Link href="/barberias" className="text-sm font-medium underline">
+          Explorar barberías
         </Link>
         <p className="rounded-xl bg-brand-soft p-4 text-sm">
           Si eres trabajador, pide al dueño que te agregue con tu correo ({email}).
@@ -28,8 +36,6 @@ export default async function PanelPage() {
       </section>
     );
   }
-
-  const isActiveWorker = businesses.some((b) => b.role === "barber");
 
   return (
     <section className="flex flex-col gap-4">
@@ -47,11 +53,9 @@ export default async function PanelPage() {
           </li>
         ))}
       </ul>
-      {isActiveWorker ? null : (
-        <Link href="/panel/nuevo" className="text-sm font-medium underline">
-          Crear otra barbería
-        </Link>
-      )}
+      <Link href="/panel/nuevo" className="text-sm font-medium underline">
+        Crear otra barbería
+      </Link>
     </section>
   );
 }

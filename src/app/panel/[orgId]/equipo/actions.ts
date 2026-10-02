@@ -39,7 +39,7 @@ export async function addWorker(
   if (error) {
     const message = dbErrorMessage(error);
     // Los errores del correo se muestran junto al campo.
-    return error.code === "PT002" || error.code === "PT003"
+    return error.code === "PT002" || error.code === "PT003" || error.code === "PT020"
       ? { status: "error", fieldError: message, email }
       : { status: "error", message, email };
   }

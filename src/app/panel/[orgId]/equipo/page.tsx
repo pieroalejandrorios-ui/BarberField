@@ -21,8 +21,8 @@ export default async function TeamPage({ params }: PageProps<"/panel/[orgId]/equ
       <section className="flex flex-col gap-3">
         <h1 className="text-2xl font-semibold">Equipo</h1>
         <p className="text-sm text-brand-muted">
-          Cada trabajador puede pertenecer a una sola barbería. Al desactivarlo pierde el acceso, pero sus
-          registros se conservan.
+          Una persona puede trabajar para hasta 3 dueños distintos. Al desactivarla pierde el acceso a esta
+          barbería, pero sus registros se conservan.
         </p>
         <AddWorkerForm organizationId={business.id} />
       </section>

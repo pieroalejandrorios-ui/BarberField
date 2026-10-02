@@ -1,5 +1,7 @@
 # Modelo de datos
 
+> **Versión 2:** tablas y funciones nuevas o modificadas (`profiles`, `subscriptions`, `is_pro`, `create_business` con condiciones de dueño, etc.) en la sección «Versión 2» al final y en `docs/red-barberias.md`.
+
 Tablas, Storage y funciones (RPC) de Supabase. Las reglas que implementan están en `docs/producto-y-reglas.md`.
 
 Convenciones:
@@ -125,3 +127,57 @@ Todas `security definer`, `set search_path = ''` y con tablas calificadas por es
   Si el slug no existe, no está publicado o el negocio está archivado, devuelve `null`. Claves: `name`, `slug`, `description`, `address`, `district`, `city`, `maps_url`, `phone`, `hours_note`, `logo_path`, `cover_path`, `hours`, `social_links`, `photos` (`path`, `caption`) y `services` (`price` como texto decimal) y `loyalty_text` (el `public_text` de la promoción activa, o `null`).
 
 Al terminar cada migración, regenerar los tipos con `supabase gen types typescript` → `src/lib/supabase/database.types.ts` y tipar los clientes con `Database`.
+
+## Versión 2
+
+Reglas en `docs/red-barberias.md`.
+
+### Etapa 10: cuentas, Pro y términos (`20261001200000_accounts_pro_terms.sql`)
+
+| Tabla | Columnas y restricciones |
+| --- | --- |
+| `profiles` | `user_id` (PK, `auth.users` con `on delete cascade`), `terms_version` (≤ 40), `terms_accepted_at` (ambos nulos o ambos presentes), fechas. Se crea por trigger al registrarse (`private.handle_new_user`, lee `raw_user_meta_data.terms_version` y solo guarda la versión vigente; nunca hace fallar el registro) o con `accept_terms`. |
+| `subscriptions` | `id`, `user_id` único, `plan` (`pro`), `status` (`active`, `trialing`, `past_due`, `canceled`), `current_period_end` (nulo = sin vencimiento), `provider` (`free` por ahora; `^[a-z0-9_]+$`), `provider_ref`, `owner_terms_version`, `owner_terms_accepted_at`, fechas. |
+
+Ambas: SELECT solo de la fila propia por RLS; sin INSERT, UPDATE ni DELETE para `authenticated`; nada para `anon`.
+
+Funciones privadas (sin EXECUTE para la API):
+
+- `private.terms_version()` y `private.owner_terms_version()`: versiones vigentes; deben coincidir con `src/lib/legal.ts`.
+- `private.is_pro(user_id)`: **único punto de control** del acceso Pro (plan `pro`, estado `active`/`trialing`, periodo vigente o nulo). Lo exigen `private.is_owner` y la rama de dueño de `private.can_operate_barbershop` (redefinidas con la misma firma).
+- `private.grant_pro(user_id, owner_terms_version)`: único punto de concesión; hoy crea la suscripción gratuita y no reactiva una cancelada.
+
+RPC:
+
+- `public.create_business(p_name, p_address, p_slug, p_owner_terms_version)` → `uuid`. Reemplaza a la versión de 3 parámetros (eliminada). `PT019` si la versión de las condiciones de dueño no es la vigente; concede Pro en la misma transacción. Mantiene `PT001` hasta la etapa 11.
+- `public.accept_terms(p_terms_version, p_owner_terms_version default null)`: requiere sesión (`42501`); `PT019` si alguna versión no es la vigente; `22023` si envía condiciones de dueño sin suscripción. Idempotente.
+- `public.get_my_account()` → una fila `is_pro`, `terms_accepted` (versión vigente aceptada) y `owner_terms_pending` (tiene suscripción y no aceptó la versión vigente de dueño). Solo `authenticated`.
+- Error nuevo `PT019`: versión de términos no vigente.
+
+Migración de datos: todo usuario con alguna membresía `owner` recibe una suscripción `pro`/`active`/`free` con las condiciones de dueño pendientes.
+
+### Etapa 11: trabajadores multi-dueño (`20261001210000_workers_multi_owner.sql`)
+
+- Se elimina el índice `organization_members_one_active_barber_idx`.
+- `private.assert_worker_owner_limit(user, org)`: cuenta los dueños activos distintos (sin contar al propio usuario) de los negocios donde es trabajador activo más los de `org`; más de 3 → `PT020`. Incluye negocios archivados.
+- Trigger `organization_members_worker_owner_limit` (BEFORE INSERT o UPDATE de `role`/`is_active`): al pasar a trabajador activo toma `private.lock_user_memberships` y valida el límite, también para escrituras fuera de las funciones.
+- `private.assert_can_work_at` (misma firma) solo valida el límite: ya no lanza `PT004` por ser dueño de otro negocio ni `PT005`. `add_worker_by_email` conserva `PT003`, `PT004` (dueño de este negocio) y `PT006`.
+- `create_business` (misma firma) ya no lanza `PT001`; toma el mismo bloqueo por usuario.
+- `PT001` y `PT005` quedan sin uso (se conservan sus mensajes por compatibilidad).
+
+### Etapa 12: red pública (`20261001220000_network.sql`)
+
+- `barbershops.lat`/`lng` `numeric(9,6)` opcionales (rango y en pareja), sin permiso de escritura todavía.
+- `barbershop_slug_history`: `slug` (PK, mismo formato), `organization_id`, `barbershop_id` (FK compuesta, `on delete cascade`), `created_at`. El trigger `barbershops_record_slug_history` (AFTER UPDATE OF slug) guarda el slug anterior y borra el nuevo del historial. El trigger `barbershops_reserve_slug_history` (BEFORE INSERT/UPDATE OF slug) impide que otro local tome un slug anterior (`23505` sobre `barbershops_slug_key`). SELECT solo del dueño; sin escritura directa; nada para `anon`.
+- `private.barbershop_is_listed(barbershop_id)`: publicado, local y negocio no archivados, slug, nombre y dirección no vacíos, y al menos 2 servicios publicados, no archivados y disponibles en el local.
+- `public.resolve_barbershop_slug(p_slug)` → slug actual de un local publicado si `p_slug` es anterior y no está en uso; si no, null. `anon`.
+- `public.list_network_barbershops(p_seed, p_query, p_district, p_sort, p_limit, p_offset)` → `slug`, `name`, `description` (≤ 300), `district`, `city`, `logo_path`, `hours` (jsonb), `created_at`, `total_count`. Solo locales listados. `p_sort`: `random` (`md5(id || seed)`, estable por semilla) o `newest`. Busca por nombre, distrito o servicio publicado (comodines escapados). `22023` si `p_limit` no está entre 1 y 48, `p_offset` entre 0 y 10000, la semilla supera 64, la búsqueda o el distrito superan 80 o el orden es desconocido. `anon`.
+- `public.list_network_districts(p_limit)` → `district`, `barbershop_count` de locales listados, agrupados sin distinguir mayúsculas. `anon`.
+- Funciones para `anon` desde la v2: `get_public_barbershop`, `resolve_barbershop_slug`, `list_network_barbershops` y `list_network_districts` (lo verifica `tests/db/security-v2.test.mts`).
+
+### Etapa 13: «Mis visitas» (`20261001230000_my_visits.sql`)
+
+- `customers.email` opcional (CHECK de formato y minúsculas; el trigger `customers_normalize_email` recorta, pasa a minúsculas y convierte vacío en null). INSERT para miembros y UPDATE para el dueño, como el resto de columnas. Índice parcial `customers_email_idx`.
+- `profiles.phone` opcional (`+519XXXXXXXX`); `public.save_my_profile(p_phone)` normaliza (espacios, guiones, `51`/`+51`), vacío lo borra y `22023` si no es celular.
+- `private.verified_email_since()`: null = vinculación desactivada. `supabase/enable-my-visits.sql` la reemplaza con la fecha de activación de «Confirm email».
+- `public.get_my_visits()` → jsonb `{status, items}`. `status`: `disabled`, `unverified` (correo sin confirmar o confirmado antes de la activación) u `ok`. Cada item: `barbershop_name`, `slug` (solo si está publicada), `district`, `total_visits` (completadas), `progress`, `visits_required`, `visits_remaining` (null si no hay premio configurado), `program_status` y `available_rewards`. Vincula clientes no archivados de negocios no archivados cuyo `email` coincide con el de la cuenta. Nunca devuelve DNI, celular, nombre registrado ni IDs.

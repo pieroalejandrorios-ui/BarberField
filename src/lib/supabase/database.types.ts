@@ -52,6 +52,27 @@ export type Database = {
           },
         ]
       }
+      barbershop_slug_history: {
+        Row: {
+          barbershop_id: string
+          created_at: string
+          organization_id: string
+          slug: string
+        }
+        Insert: {
+          barbershop_id: string
+          created_at?: string
+          organization_id: string
+          slug: string
+        }
+        Update: {
+          barbershop_id?: string
+          created_at?: string
+          organization_id?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       barbershops: {
         Row: {
           address: string | null
@@ -64,6 +85,8 @@ export type Database = {
           hours_note: string | null
           id: string
           is_published: boolean
+          lat: number | null
+          lng: number | null
           logo_path: string | null
           maps_url: string | null
           name: string
@@ -83,6 +106,8 @@ export type Database = {
           hours_note?: string | null
           id?: string
           is_published?: boolean
+          lat?: number | null
+          lng?: number | null
           logo_path?: string | null
           maps_url?: string | null
           name: string
@@ -102,6 +127,8 @@ export type Database = {
           hours_note?: string | null
           id?: string
           is_published?: boolean
+          lat?: number | null
+          lng?: number | null
           logo_path?: string | null
           maps_url?: string | null
           name?: string
@@ -236,6 +263,7 @@ export type Database = {
           created_at: string
           created_by: string
           dni: string
+          email: string | null
           full_name: string
           id: string
           organization_id: string
@@ -243,6 +271,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          email?: string | null
           archived_at?: string | null
           consent_at?: string
           consent_by: string
@@ -256,6 +285,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          email?: string | null
           archived_at?: string | null
           consent_at?: string
           consent_by?: string
@@ -398,6 +428,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          phone: string | null
+          terms_accepted_at: string | null
+          terms_version: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          phone?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          phone?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          owner_terms_accepted_at: string | null
+          owner_terms_version: string | null
+          plan: string
+          provider: string
+          provider_ref: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          owner_terms_accepted_at?: string | null
+          owner_terms_version?: string | null
+          plan?: string
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          owner_terms_accepted_at?: string | null
+          owner_terms_version?: string | null
+          plan?: string
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       organizations: {
         Row: {
@@ -931,9 +1030,61 @@ export type Database = {
           user_id: string
         }[]
       }
+      accept_terms: {
+        Args: { p_owner_terms_version?: string | null; p_terms_version: string }
+        Returns: undefined
+      }
       create_business: {
-        Args: { p_address: string; p_name: string; p_slug: string }
+        Args: { p_address: string; p_name: string; p_owner_terms_version: string; p_slug: string }
         Returns: string
+      }
+      get_my_visits: {
+        Args: never
+        Returns: Json
+      }
+      list_network_barbershops: {
+        Args: {
+          p_district?: string | null
+          p_limit?: number
+          p_offset?: number
+          p_query?: string
+          p_seed?: string
+          p_sort?: string
+        }
+        Returns: {
+          city: string | null
+          created_at: string
+          description: string | null
+          district: string | null
+          hours: Json
+          logo_path: string | null
+          name: string
+          slug: string
+          total_count: number
+        }[]
+      }
+      list_network_districts: {
+        Args: { p_limit?: number }
+        Returns: {
+          barbershop_count: number
+          district: string
+        }[]
+      }
+      resolve_barbershop_slug: {
+        Args: { p_slug: string }
+        Returns: string | null
+      }
+      save_my_profile: {
+        Args: { p_phone: string | null }
+        Returns: undefined
+      }
+      get_my_account: {
+        Args: never
+        Returns: {
+          is_pro: boolean
+          owner_terms_pending: boolean
+          terms_accepted: boolean
+        }[]
       }
       get_customer_loyalty: {
         Args: { p_customer_id: string }

@@ -8,7 +8,7 @@ import { createCustomer, type NewCustomerState } from "../actions";
 import { CustomerFields } from "../customer-fields";
 
 const initialState: NewCustomerState = { status: "idle" };
-const EMPTY: CustomerValues = { fullName: "", dni: "", phone: "" };
+const EMPTY: CustomerValues = { fullName: "", dni: "", phone: "", email: "" };
 
 export function NewCustomerForm({ organizationId }: { organizationId: string }) {
   const [state, formAction, pending] = useActionState(createCustomer.bind(null, organizationId), initialState);

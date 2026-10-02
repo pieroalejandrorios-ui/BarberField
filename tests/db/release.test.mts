@@ -8,7 +8,7 @@ test("el diagnóstico final valida las migraciones, RPC, permisos e índices de 
   try {
     const sql = await readFile(new URL("../../supabase/verify-release.sql", import.meta.url), "utf8");
     const results = await db.exec(sql);
-    assert.deepEqual(results.map(r => r.rows.length), [17, 16, 2, 1]);
+    assert.deepEqual(results.map(r => r.rows.length), [20, 23, 2, 1, 4]);
     for (const result of results) for (const row of result.rows) {
       assert(row !== null && typeof row === "object" && "ready" in row);
       assert.equal(row.ready, true, JSON.stringify(row));

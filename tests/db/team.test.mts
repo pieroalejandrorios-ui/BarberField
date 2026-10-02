@@ -21,7 +21,7 @@ let orgB: string;
 async function createBusiness(userId: string, slug: string): Promise<string> {
   return runAs(db, userId, async (tx) => {
     const { rows } = await tx.query<{ id: string }>(
-      "select public.create_business($1, 'Calle 1', $2) as id",
+      "select public.create_business($1, 'Calle 1', $2, '2026-10-01') as id",
       [`Barbería ${slug}`, slug],
     );
     return rows[0].id;
@@ -91,18 +91,22 @@ describe("add_worker_by_email", () => {
     await assert.rejects(addWorker(USERS.ownerA.id, orgA, "sin-arroba"), hasSqlState(SQLSTATE.invalidParameterValue));
   });
 
-  test("rechaza al propio dueño, a un dueño de otro negocio y a un trabajador ya activo", async () => {
+  test("rechaza al propio dueño y a un trabajador ya activo", async () => {
     await assert.rejects(addWorker(USERS.ownerA.id, orgA, USERS.ownerA.email), hasSqlState(SQLSTATE.addingSelf));
-    await assert.rejects(addWorker(USERS.ownerA.id, orgA, USERS.ownerB.email), hasSqlState(SQLSTATE.ownsBusiness));
 
     await addWorker(USERS.ownerA.id, orgA, USERS.worker.email);
     await assert.rejects(addWorker(USERS.ownerA.id, orgA, USERS.worker.email), hasSqlState(SQLSTATE.alreadyWorker));
   });
 
-  test("rechaza a un trabajador activo de otro negocio", async () => {
+  // Etapa 11: puede trabajar para otro dueño a la vez (límite en workers.test.mts).
+  test("acepta a un trabajador activo de otro negocio y a un dueño de otro negocio", async () => {
     await addWorker(USERS.ownerB.id, orgB, USERS.worker.email);
-    await assert.rejects(addWorker(USERS.ownerA.id, orgA, USERS.worker.email), hasSqlState(SQLSTATE.worksElsewhere));
-    assert.equal(await canOperate(USERS.worker.id, orgA), false);
+    await addWorker(USERS.ownerA.id, orgA, USERS.worker.email);
+    assert.equal(await canOperate(USERS.worker.id, orgA), true);
+    assert.equal(await canOperate(USERS.worker.id, orgB), true);
+
+    await addWorker(USERS.ownerA.id, orgA, USERS.ownerB.email);
+    assert.equal(await canOperate(USERS.ownerB.id, orgA), true);
   });
 
   test("acepta a quien dejó de trabajar en otro negocio", async () => {
@@ -154,16 +158,15 @@ describe("set_worker_active", () => {
     await assert.rejects(listTeam(USERS.worker.id, orgA), denied);
   });
 
-  test("rechaza la reactivación si ya trabaja en otro negocio o si ahora es dueño", async () => {
+  // Etapa 11: trabajar en otro negocio o ser dueño ya no impide reactivar.
+  test("reactiva aunque trabaje en otro negocio o ahora sea dueño", async () => {
     await addWorker(USERS.ownerA.id, orgA, USERS.worker.email);
     await setActive(USERS.ownerA.id, orgA, USERS.worker.id, false);
     await addWorker(USERS.ownerB.id, orgB, USERS.worker.email);
-
-    await assert.rejects(setActive(USERS.ownerA.id, orgA, USERS.worker.id, true), hasSqlState(SQLSTATE.worksElsewhere));
-
-    await setActive(USERS.ownerB.id, orgB, USERS.worker.id, false);
     await createBusiness(USERS.worker.id, "propia");
-    await assert.rejects(setActive(USERS.ownerA.id, orgA, USERS.worker.id, true), hasSqlState(SQLSTATE.ownsBusiness));
+
+    await setActive(USERS.ownerA.id, orgA, USERS.worker.id, true);
+    assert.equal(await canOperate(USERS.worker.id, orgA), true);
   });
 
   test("reactiva cuando las reglas lo permiten", async () => {

@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { buttonClass, secondaryButtonClass } from "@/components/ui";
 import { publicMediaUrl } from "@/lib/media";
 import { formatPEN } from "@/lib/money";
 import { getPublicBarbershop } from "@/lib/public-barbershop";
+import { resolveBarbershopSlug } from "@/lib/network";
 import { WEEKDAYS } from "@/lib/validation/hours";
 import { SOCIAL_PLATFORMS } from "@/lib/validation/page";
 import { formatPhone, isMobile } from "@/lib/validation/phone";
+
+// Un slug anterior redirige (308) al actual; si no, la página no existe.
+async function redirectOldSlug(slug: string): Promise<never> {
+  const current = await resolveBarbershopSlug(slug);
+  if (current) permanentRedirect(`/b/${current}`);
+  notFound();
+}
 
 function summary(text: string | null, fallback: string): string {
   const clean = (text ?? "").replace(/\s+/g, " ").trim();
@@ -18,7 +26,7 @@ function summary(text: string | null, fallback: string): string {
 export async function generateMetadata({ params }: PageProps<"/b/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const shop = await getPublicBarbershop(slug);
-  if (!shop) return { title: "Barbería no encontrada" };
+  if (!shop) return redirectOldSlug(slug);
 
   const description = summary(shop.description, `${shop.name}: servicios, precios, horario y ubicación.`);
   return {
@@ -41,7 +49,7 @@ function formatTime(value: string): string {
 export default async function PublicBarbershopPage({ params }: PageProps<"/b/[slug]">) {
   const { slug } = await params;
   const shop = await getPublicBarbershop(slug);
-  if (!shop) notFound();
+  if (!shop) return redirectOldSlug(slug);
 
   const location = [shop.address, shop.district, shop.city].filter(Boolean).join(", ");
   const phoneDigits = shop.phone?.replace(/^\+/, "");

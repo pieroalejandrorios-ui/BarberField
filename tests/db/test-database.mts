@@ -12,7 +12,13 @@ const SUPABASE_BOOTSTRAP = `
   create role authenticated nologin;
 
   create schema auth;
-  create table auth.users (id uuid primary key, email varchar(255));
+  create table auth.users (
+    id uuid primary key,
+    email varchar(255),
+    email_confirmed_at timestamptz,
+    created_at timestamptz default now(),
+    raw_user_meta_data jsonb
+  );
   create function auth.uid() returns uuid language sql stable as $$
     select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
   $$;
@@ -56,16 +62,28 @@ const SUPABASE_BOOTSTRAP = `
   alter default privileges in schema public grant all on sequences to anon, authenticated;
 `;
 
-export async function createTestDatabase(): Promise<PGlite> {
+// `before`: aplica solo las migraciones anteriores a ese archivo, para probar
+// la migración de datos existentes con `applyMigrationsFrom`.
+export async function createTestDatabase(options: { before?: string } = {}): Promise<PGlite> {
   const db = new PGlite();
   await db.exec(SUPABASE_BOOTSTRAP);
 
-  const files = (await readdir(MIGRATIONS_DIR)).filter((file) => file.endsWith(".sql")).sort();
-  for (const file of files) {
+  for (const file of await migrationFiles()) {
+    if (options.before && file >= options.before) break;
     await db.exec(await readFile(path.join(MIGRATIONS_DIR, file), "utf8"));
   }
 
   return db;
+}
+
+export async function applyMigrationsFrom(db: PGlite, from: string): Promise<void> {
+  for (const file of await migrationFiles()) {
+    if (file >= from) await db.exec(await readFile(path.join(MIGRATIONS_DIR, file), "utf8"));
+  }
+}
+
+async function migrationFiles(): Promise<string[]> {
+  return (await readdir(MIGRATIONS_DIR)).filter((file) => file.endsWith(".sql")).sort();
 }
 
 // Ejecuta `fn` como lo haría PostgREST: rol de la API y `sub` del JWT fijados
@@ -111,4 +129,6 @@ export const SQLSTATE = {
   rewardNotEarned: "PT013",
   rewardNotAvailable: "PT014",
   rewardServiceMissing: "PT015",
+  termsNotCurrent: "PT019",
+  workerOwnerLimit: "PT020",
 } as const;

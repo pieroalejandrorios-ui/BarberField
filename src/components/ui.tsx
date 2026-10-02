@@ -95,3 +95,34 @@ export function FormMessage({ message }: { message?: string }) {
     </p>
   );
 }
+
+type CheckboxFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  id: string;
+  label: ReactNode;
+  error?: string;
+};
+
+// Casilla con el mismo aspecto que el consentimiento de clientes.
+export function CheckboxField({ id, label, error, ...inputProps }: CheckboxFieldProps) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex min-h-11 items-start gap-3">
+        <input
+          id={id}
+          name={id}
+          type="checkbox"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className="mt-1 size-5 shrink-0 accent-brand-ink"
+          {...inputProps}
+        />
+        <label htmlFor={id}>{label}</label>
+      </div>
+      {error ? (
+        <p id={`${id}-error`} className="text-sm text-red-700 ">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}

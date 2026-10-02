@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { startTransition, useActionState, useState, type FormEvent } from "react";
-import { Field, FormMessage, buttonClass } from "@/components/ui";
+import { CheckboxField, Field, FormMessage, buttonClass } from "@/components/ui";
 import { ADDRESS_MAX_LENGTH, BUSINESS_NAME_MAX_LENGTH } from "@/lib/validation/business";
 import { SLUG_MAX_LENGTH, slugify } from "@/lib/validation/slug";
 import { createBusiness, type CreateBusinessState } from "./actions";
@@ -15,6 +16,7 @@ export function CreateBusinessForm() {
   const [slug, setSlug] = useState("");
   // Mientras el dueño no edite el enlace, se propone a partir del nombre.
   const [slugEdited, setSlugEdited] = useState(false);
+  const [ownerTerms, setOwnerTerms] = useState(false);
 
   // Envío manual para que React no reinicie los campos controlados si hay error.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -68,6 +70,22 @@ export function CreateBusinessForm() {
           </>
         }
         error={state.errors?.slug}
+      />
+      <CheckboxField
+        id="acceptOwnerTerms"
+        required
+        checked={ownerTerms}
+        onChange={(event) => setOwnerTerms(event.target.checked)}
+        error={state.errors?.acceptOwnerTerms}
+        label={
+          <>
+            Acepto las{" "}
+            <Link href="/terminos#duenos" target="_blank" className="font-medium underline">
+              condiciones de dueño
+            </Link>
+            : soy responsable de los datos personales de mis clientes.
+          </>
+        }
       />
 
       <FormMessage message={state.message} />

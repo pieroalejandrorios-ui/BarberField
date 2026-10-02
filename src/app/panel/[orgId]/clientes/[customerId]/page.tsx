@@ -55,7 +55,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
   const { supabase } = await requireUser();
   const { data: customer, error } = await supabase
     .from("customers")
-    .select("id, full_name, dni, phone, consent_at, created_at, archived_at")
+    .select("id, full_name, dni, phone, email, consent_at, created_at, archived_at")
     .eq("organization_id", business.id)
     .eq("id", customerId)
     .maybeSingle();
@@ -157,6 +157,12 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
               {formatPhone(customer.phone)}
             </a>
           </dd>
+          {customer.email ? (
+            <>
+              <dt className="text-brand-muted">Correo</dt>
+              <dd className="break-all">{customer.email}</dd>
+            </>
+          ) : null}
           <dt className="text-brand-muted">Registrado</dt>
           <dd>{formatDate(customer.created_at)}</dd>
           <dt className="text-brand-muted">Autorización</dt>
@@ -305,7 +311,12 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
           <EditCustomerForm
             organizationId={business.id}
             customerId={customer.id}
-            initialValues={{ fullName: customer.full_name, dni: customer.dni, phone: formatPhone(customer.phone) }}
+            initialValues={{
+              fullName: customer.full_name,
+              dni: customer.dni,
+              phone: formatPhone(customer.phone),
+              email: customer.email ?? "",
+            }}
           />
           <ActionButton
             action={setCustomerArchived.bind(null, business.id, customer.id, customer.archived_at === null)}

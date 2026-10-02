@@ -50,8 +50,8 @@ beforeEach(async () => {
   for (const user of Object.values(USERS)) {
     await db.query("insert into auth.users (id, email) values ($1, $2)", [user.id, user.email]);
   }
-  [orgA] = (await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte', 'Calle 1', 'norte') as id")).map((r) => r.id);
-  [orgB] = (await as<{ id: string }>(USERS.ownerB.id, "select public.create_business('Sur', 'Calle 2', 'sur') as id")).map((r) => r.id);
+  [orgA] = (await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte', 'Calle 1', 'norte', '2026-10-01') as id")).map((r) => r.id);
+  [orgB] = (await as<{ id: string }>(USERS.ownerB.id, "select public.create_business('Sur', 'Calle 2', 'sur', '2026-10-01') as id")).map((r) => r.id);
   await as(USERS.owner.id, "select * from public.add_worker_by_email($1, $2)", [orgA, USERS.worker.email]);
 });
 
@@ -120,7 +120,7 @@ describe("servicios", () => {
   });
 
   test("un negocio no ve ni modifica servicios de otro, aunque sea del mismo dueño", async () => {
-    const [orgA2] = (await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte 2', 'Calle 3', 'norte-dos') as id")).map((r) => r.id);
+    const [orgA2] = (await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte 2', 'Calle 3', 'norte-dos', '2026-10-01') as id")).map((r) => r.id);
     const idA = await createService(USERS.owner.id, orgA, "Corte A", "20");
     await createService(USERS.owner.id, orgA2, "Corte A2", "25");
 

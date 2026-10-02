@@ -1,31 +1,22 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getMyBusinesses } from "@/lib/session";
 import { CreateBusinessForm } from "./create-business-form";
 
 export const metadata: Metadata = { title: "Crear barbería · Barber Field" };
 
 export default async function NewBusinessPage() {
-  const businesses = await getMyBusinesses();
-  const workplace = businesses.find((b) => b.role === "barber");
+  // Verifica sesión y términos; desde la etapa 11 cualquier cuenta puede crear.
+  await getMyBusinesses();
 
   return (
     <section className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">Crear mi barbería</h1>
-      {workplace ? (
-        // La base de datos también lo rechaza; aquí solo se explica.
-        <div className="flex flex-col gap-3 rounded-xl bg-brand-soft p-4">
-          <p>
-            Trabajas en <strong>{workplace.name}</strong>. Mientras seas trabajador activo de una barbería,
-            no puedes crear una propia.
-          </p>
-          <Link href={`/panel/${workplace.id}`} className="font-medium underline">
-            Ir a {workplace.name}
-          </Link>
-        </div>
-      ) : (
-        <CreateBusinessForm />
-      )}
+      <p className="rounded-xl bg-brand-soft p-4 text-sm">
+        Al crear tu barbería, tu cuenta pasa a ser <strong>Pro</strong>: podrás registrar visitas, configurar
+        premios, ver reportes y auditoría, armar tu equipo y publicar tu página. Por ahora es gratis. Si trabajas
+        en otras barberías, sigues teniendo acceso a ellas.
+      </p>
+      <CreateBusinessForm />
     </section>
   );
 }

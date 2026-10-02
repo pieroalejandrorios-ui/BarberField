@@ -42,6 +42,8 @@ const DB_ERROR_KINDS: Record<string, DbErrorKind> = {
   PT016: "conflict",
   PT017: "conflict",
   PT018: "conflict",
+  PT019: "conflict",
+  PT020: "conflict",
 };
 
 const KIND_MESSAGES: Record<DbErrorKind, string> = {
@@ -58,7 +60,7 @@ const CODE_MESSAGES: Record<string, string> = {
   PT001: "Eres trabajador activo de una barbería, así que no puedes crear una propia.",
   PT002: "No hay una cuenta con ese correo. Pide al trabajador que se registre primero.",
   PT003: "Ese es tu propio correo: ya eres el dueño.",
-  PT004: "Esa persona es dueña de una barbería, así que no puede ser trabajador.",
+  PT004: "Esa persona es dueña de esta barbería.",
   PT005: "Esa persona ya trabaja en otra barbería.",
   PT006: "Esa persona ya es parte de tu equipo.",
   PT007: "Esa persona no es trabajador de esta barbería.",
@@ -72,6 +74,8 @@ const CODE_MESSAGES: Record<string, string> = {
   PT016: "La visita ya fue anulada y no se puede corregir.",
   PT017: "Solo puedes anular la última visita completada. Recarga el historial.",
   PT018: "No se puede anular: el premio o el ciclo tienen movimientos posteriores.",
+  PT019: "Los términos se actualizaron. Recarga la página y vuelve a aceptarlos.",
+  PT020: "Esa persona ya trabaja para 3 dueños distintos, el máximo permitido. Debe dejar uno antes.",
 };
 
 export function classifyDbError(error: { code?: string | null }): DbErrorKind {

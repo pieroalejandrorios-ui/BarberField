@@ -36,6 +36,17 @@ export function CustomerFields({ values, errors }: { values: CustomerValues; err
         hint="9 dígitos, por ejemplo 987 654 321."
         error={errors?.phone}
       />
+      <Field
+        id="email"
+        label="Correo (opcional)"
+        type="email"
+        inputMode="email"
+        autoComplete="off"
+        maxLength={254}
+        defaultValue={values.email}
+        hint="Si el cliente tiene cuenta en Barber Field con este correo, podrá ver sus visitas y cuánto le falta para el premio."
+        error={errors?.email}
+      />
     </>
   );
 }

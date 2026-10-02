@@ -1,5 +1,7 @@
 # Publicación y operación
 
+> Versión 2: SQL, Auth y Vercel en `docs/v2-pasos-manuales.md`.
+
 La etapa 8 prepara el código y el procedimiento. No crea proyectos externos,
 no aplica migraciones remotas y no activa respaldos. Registrar la evidencia
 operativa cuando el administrador complete cada paso.

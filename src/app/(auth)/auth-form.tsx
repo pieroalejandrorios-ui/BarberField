@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { Field, FormMessage, buttonClass } from "@/components/ui";
+import { CheckboxField, Field, FormMessage, buttonClass } from "@/components/ui";
 import { PASSWORD_MIN_LENGTH } from "@/lib/validation/auth";
 import { signIn, signUp, type AuthFormState } from "./actions";
 
@@ -15,6 +15,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   // Solo en memoria del navegador; nunca se devuelven contraseñas desde el servidor.
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
@@ -54,6 +55,29 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           onChange={event => setConfirmation(event.target.value)}
           disabled={pending}
           error={state.errors?.confirmPassword}
+        />
+      ) : null}
+      {isSignup ? (
+        <CheckboxField
+          id="acceptTerms"
+          required
+          checked={acceptTerms}
+          onChange={event => setAcceptTerms(event.target.checked)}
+          disabled={pending}
+          error={state.errors?.acceptTerms}
+          label={
+            <>
+              Acepto los{" "}
+              <Link href="/terminos" target="_blank" className="font-medium underline">
+                Términos y condiciones
+              </Link>{" "}
+              y la{" "}
+              <Link href="/privacidad" target="_blank" className="font-medium underline">
+                Política de Privacidad
+              </Link>
+              .
+            </>
+          }
         />
       ) : null}
 

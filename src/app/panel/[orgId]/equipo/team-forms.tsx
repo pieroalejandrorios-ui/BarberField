@@ -19,7 +19,7 @@ export function AddWorkerForm({ organizationId }: { organizationId: string }) {
         inputMode="email"
         required
         defaultValue={state.email}
-        hint="Debe haber creado su cuenta antes."
+        hint="Debe haber creado su cuenta antes. Puede trabajar para hasta 3 dueños distintos."
         error={state.fieldError}
       />
       {state.status === "success" ? (

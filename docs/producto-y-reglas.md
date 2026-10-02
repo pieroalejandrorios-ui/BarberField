@@ -1,5 +1,7 @@
 # Producto y reglas de negocio
 
+> **Versión 2 (red de barberías):** varias reglas de este documento cambian. Ver `docs/red-barberias.md`, que manda en caso de contradicción.
+
 Qué hace el producto, quién puede hacer qué y las reglas que la base de datos y la interfaz deben cumplir. El modelo de datos que las implementa está en `docs/modelo-datos.md`.
 
 ## Qué es el producto
@@ -8,7 +10,7 @@ Plataforma web donde cualquier persona crea una cuenta y registra la barbería d
 
 1. **Cuentas**: registro e inicio de sesión con correo y contraseña.
 2. **Negocios**: cualquier usuario puede crear uno o varios negocios (barberías) de los que es dueño.
-3. **Equipo**: el dueño agrega trabajadores con su correo. Un trabajador pertenece a una sola barbería.
+3. **Equipo**: el dueño agrega trabajadores con su correo. Un trabajador puede trabajar para hasta 3 dueños distintos (v2; en la v1 era una sola barbería).
 4. **Clientes**: el dueño y los trabajadores registran clientes con nombre, DNI y celular.
 5. **Visitas**: el dueño y los trabajadores registran visitas indicando servicios, precios y quién atendió. También pueden corregirlas o anularlas.
 6. **Premio por fidelidad**: cada N visitas (5 por defecto; el dueño puede cambiar N) el cliente gana un premio que define el dueño: descuento o servicio especial. En la visita N el sistema avisa, quien registra marca que el premio se aplicó y el conteo vuelve a 0.
@@ -20,9 +22,9 @@ Público objetivo: barberías pequeñas en Perú. Interfaz en español, moneda P
 ### Fuera del alcance de la primera versión (no implementar)
 
 - Verificación de correo y recuperación de contraseña.
-- Pagos y suscripción del SaaS. La plataforma es gratis por ahora, pero en el futuro se cobrará por registrar un negocio. El negocio (`organizations`) es la unidad que se cobrará: no tomar decisiones que lo impidan.
+- Pagos reales. La plataforma es gratis por ahora. Desde la v2 la suscripción es por usuario (`subscriptions`) y el acceso Pro pasa solo por `private.is_pro` (ver `docs/red-barberias.md`).
 - Envío de mensajes (WhatsApp, SMS, correo) a clientes, incluido el aviso de premio. El celular solo se guarda.
-- Consulta pública del cliente («¿cuántas visitas llevo?» por DNI).
+- Consulta pública del cliente por DNI. (En la v2 el cliente con cuenta y correo confirmado ve sus visitas en «Mis visitas».)
 - Personalización de colores o tema de la página pública: todas las páginas usan el mismo diseño.
 - Cumpleaños de clientes.
 - Reservas o citas, facturación electrónica, inventario, propinas y comisiones.
@@ -34,7 +36,7 @@ Público objetivo: barberías pequeñas en Perú. Interfaz en español, moneda P
 | Acción | Dueño (`owner`) | Trabajador (`barber`) |
 | --- | --- | --- |
 | Crear cuenta e iniciar sesión | Sí | Sí |
-| Crear negocios | Sí, varios | No, mientras sea trabajador activo de otro negocio |
+| Crear negocios | Sí, varios | Sí (pasa a Pro y conserva sus trabajos) |
 | Editar página pública (textos, fotos, horario, redes, ubicación, publicar) | Sí | No |
 | Crear, editar y archivar servicios y precios | Sí | Solo consultar |
 | Configurar el premio (N visitas y recompensa) | Sí | Solo consultar |
@@ -50,7 +52,8 @@ Público objetivo: barberías pequeñas en Perú. Interfaz en español, moneda P
 
 - Los permisos se aplican en la base de datos (RLS y funciones), no solo ocultando botones.
 - Un miembro desactivado pierde acceso aunque su sesión siga abierta.
-- Un usuario puede ser **trabajador activo de un solo negocio** y, mientras lo sea, no puede ser dueño de otro (ni crear uno). Esto se valida en la base de datos.
+- Desde la etapa 11, un usuario puede ser trabajador activo de negocios de **hasta 3 dueños distintos** (dos negocios del mismo dueño cuentan como uno) y además ser dueño de los suyos. Se valida en la base de datos con un trigger (`PT020`).
+- Desde la etapa 10, las acciones de dueño exigen además cuenta Pro (`private.is_pro`), que se obtiene al crear un negocio.
 - Un dueño puede tener varios negocios. Cada negocio está completamente aislado: no comparte clientes, visitas, servicios ni premios con otros, aunque sean del mismo dueño.
 
 ## Reglas de negocio
@@ -59,7 +62,7 @@ Público objetivo: barberías pequeñas en Perú. Interfaz en español, moneda P
 
 - Supabase Auth con correo y contraseña (mínimo 8 caracteres). En Supabase está **desactivado** «Confirm email»: el usuario entra al registrarse.
 - Sin recuperación de contraseña en la v1. Si alguien la olvida, el administrador la restablece manualmente desde el panel de Supabase.
-- Al iniciar sesión:
+- Al iniciar sesión (v2): va a `/barberias`, que es el inicio de quien tiene sesión (si le faltan términos, antes a `/aceptar-terminos`). Con sesión, `/`, `/login` y `/registro` también llevan a `/barberias`. El panel se abre con «Mi panel»:
   - Si el usuario no tiene negocios, ve «Crear mi barbería» y un aviso: «Si eres trabajador, pide al dueño que te agregue con tu correo (correo@…)».
   - Si tiene exactamente uno, entra directo a su panel.
   - Si tiene varios, elige con cuál trabajar.
@@ -72,9 +75,9 @@ Público objetivo: barberías pequeñas en Perú. Interfaz en español, moneda P
 ### Equipo
 
 - El dueño escribe el correo del trabajador. **La cuenta debe existir**: el trabajador se registra primero. Si el correo no existe, mostrar: «No hay una cuenta con ese correo. Pide al trabajador que se registre primero».
-- La función rechaza al usuario si ya es trabajador activo de otro negocio, si es dueño de algún negocio activo o si es el propio dueño.
+- La función rechaza al propio dueño (`PT003`), a un trabajador ya activo de este negocio (`PT006`) y a quien ya trabaja para 3 dueños distintos (`PT020`). Desde la etapa 11 acepta a trabajadores de otros negocios y a dueños de otros negocios.
 - Al agregarlo, se crea la membresía `barber` y se asigna automáticamente al único local.
-- El dueño puede desactivar y reactivar trabajadores. No se borran, porque sus visitas registradas los referencian. Al reactivar se vuelve a validar la regla de un solo negocio.
+- El dueño puede desactivar y reactivar trabajadores. No se borran, porque sus visitas registradas los referencian. Al reactivar se vuelve a validar el límite de 3 dueños.
 
 ### Clientes
 

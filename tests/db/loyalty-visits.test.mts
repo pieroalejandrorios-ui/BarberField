@@ -310,8 +310,8 @@ beforeEach(async () => {
   for (const user of Object.values(USERS)) {
     await db.query("insert into auth.users (id, email) values ($1, $2)", [user.id, user.email]);
   }
-  [{ id: orgA }] = await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte', 'Calle 1', 'norte') as id");
-  [{ id: orgB }] = await as<{ id: string }>(USERS.ownerB.id, "select public.create_business('Sur', 'Calle 2', 'sur') as id");
+  [{ id: orgA }] = await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte', 'Calle 1', 'norte', '2026-10-01') as id");
+  [{ id: orgB }] = await as<{ id: string }>(USERS.ownerB.id, "select public.create_business('Sur', 'Calle 2', 'sur', '2026-10-01') as id");
   await as(USERS.owner.id, "select * from public.add_worker_by_email($1, $2)", [orgA, USERS.worker.email]);
   [{ id: shopA }] = (await db.query<{ id: string }>("select id from public.barbershops where organization_id = $1", [orgA])).rows;
   [{ id: shopB }] = (await db.query<{ id: string }>("select id from public.barbershops where organization_id = $1", [orgB])).rows;
@@ -382,7 +382,7 @@ describe("seguridad", () => {
     await registerVisit();
 
     // Segundo negocio del mismo dueño, con su propia promoción.
-    const [{ id: orgC }] = await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte 2', 'Calle 3', 'norte-dos') as id");
+    const [{ id: orgC }] = await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte 2', 'Calle 3', 'norte-dos', '2026-10-01') as id");
     const [{ id: shopC }] = (await db.query<{ id: string }>("select id from public.barbershops where organization_id = $1", [orgC])).rows;
     const cutC = await addService("Corte", "20.00", orgC);
     await saveProgram({ rewardType: "custom_benefit", description: "Otro" }, USERS.owner.id, orgC);

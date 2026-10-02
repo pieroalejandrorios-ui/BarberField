@@ -3,12 +3,20 @@
 Decisiones tomadas sin confirmación explícita del dueño del proyecto. Si alguna cambia, actualizar `docs/producto-y-reglas.md` y `docs/modelo-datos.md` antes de implementar la etapa afectada.
 
 - Para agregar un trabajador, este debe tener cuenta primero (no hay invitaciones pendientes). Como no hay verificación de correo, cualquiera podría registrarse con un correo ajeno. Se recomienda activar la verificación antes de abrir la plataforma al público.
-- Un trabajador activo no puede ser dueño de otro negocio al mismo tiempo.
+- ~~Un trabajador activo no puede ser dueño de otro negocio al mismo tiempo.~~ Eliminado en la etapa 11.
+- v2: el límite de 3 cuenta dueños distintos con membresía `owner` activa en los negocios donde la persona es trabajador activo, incluidos negocios archivados (como hacía el índice de la v1). Si un negocio tuviera dos dueños activos, cuentan como dos.
 - En la visita N el premio se aplica en esa misma visita. Si el cliente prefiere usarlo después, queda pendiente.
 - La 5.ª visita (la del premio) cuenta para el ciclo que se cierra; el ciclo nuevo empieza en 0 con la siguiente visita.
 - Corregir se permite en cualquier visita; anular, solo en la última de cada cliente, para no romper el conteo.
 - Solo se aceptan DNI peruanos de 8 dígitos (sin carné de extranjería) en la v1.
-- Un negocio tiene un solo local; para un segundo local se crea otro negocio.
+- Un negocio tiene un solo local; para un segundo local se crea otro negocio. (Se mantiene en la v2: cada «Crear» es un negocio con su local.)
+- v2: la aceptación de términos se exige en el panel (servidor), no en la base de datos; una llamada directa a la API con sesión no la comprueba, salvo `create_business`, que exige las condiciones de dueño.
+- v2: los dueños existentes pasan a Pro, pero deben aceptar las condiciones de dueño en su próximo ingreso.
+- v2: el celular del perfil se pide, pero no vincula «Mis visitas» hasta que exista verificación por SMS.
+- v2: con «Confirm email» desactivado, Supabase marca el correo como confirmado al registrarse; por eso «Mis visitas» solo confía en confirmaciones posteriores a `private.verified_email_since()`.
+- v2: «Mis visitas» muestra la primera barbería no archivada del negocio (hoy cada negocio tiene una).
+- v2: un slug anterior queda reservado para su local, salvo que el mismo local vuelva a usarlo.
+- v2: las filas por distrito de `/barberias` son las 6 con más barberías; el resto se encuentra con el buscador.
 - Los miembros no tienen nombre visible: el equipo y el selector «Atendido por» muestran el correo. Por eso un trabajador ve el correo de los demás miembros activos de su negocio.
 - Volver a agregar por correo a un trabajador desactivado del mismo negocio lo reactiva (con las mismas validaciones), en lugar de dar error.
 - La búsqueda de clientes no ignora tildes («Pérez» no se encuentra escribiendo «perez»). Se puede añadir `unaccent` más adelante si hace falta.

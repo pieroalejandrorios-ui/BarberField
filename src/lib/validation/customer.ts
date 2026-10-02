@@ -1,12 +1,14 @@
 import { normalizeMobile } from "./phone";
+import { normalizeEmail, validateEmail } from "./auth";
 
 // Mismas reglas que los CHECK de `public.customers`.
 export const CUSTOMER_NAME_MAX_LENGTH = 120;
 const DNI_PATTERN = /^\d{8}$/;
 
-export type CustomerValues = { fullName: string; dni: string; phone: string };
+// `email` es opcional: vincula al cliente con su cuenta («Mis visitas»).
+export type CustomerValues = { fullName: string; dni: string; phone: string; email: string };
 export type CustomerErrors = Partial<Record<keyof CustomerValues | "consent", string>>;
-export type CustomerData = { fullName: string; dni: string; phone: string };
+export type CustomerData = { fullName: string; dni: string; phone: string; email: string | null };
 
 // DNI como texto para conservar ceros iniciales; se aceptan espacios al escribir.
 export function normalizeDni(input: string): string {
@@ -20,6 +22,7 @@ export function validateCustomer(
   const fullName = values.fullName.trim().replace(/\s+/g, " ");
   const dni = normalizeDni(values.dni);
   const phone = normalizeMobile(values.phone);
+  const email = normalizeEmail(values.email);
 
   if (fullName.length === 0) errors.fullName = "Escribe el nombre completo.";
   else if (fullName.length > CUSTOMER_NAME_MAX_LENGTH)
@@ -31,6 +34,9 @@ export function validateCustomer(
   if (values.phone.trim().length === 0) errors.phone = "Escribe el celular.";
   else if (!phone) errors.phone = "Escribe un celular de 9 dígitos que empiece en 9.";
 
+  const emailError = email.length > 0 ? validateEmail(email) : null;
+  if (emailError) errors.email = emailError;
+
   if (!phone || Object.keys(errors).length > 0) return { ok: false, errors };
-  return { ok: true, data: { fullName, dni, phone } };
+  return { ok: true, data: { fullName, dni, phone, email: email.length > 0 ? email : null } };
 }

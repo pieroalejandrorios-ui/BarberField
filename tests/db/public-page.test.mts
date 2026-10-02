@@ -72,8 +72,8 @@ beforeEach(async () => {
   for (const user of Object.values(USERS)) {
     await db.query("insert into auth.users (id, email) values ($1, $2)", [user.id, user.email]);
   }
-  [{ id: orgA }] = await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte', 'Calle 1', 'norte') as id");
-  [{ id: orgB }] = await as<{ id: string }>(USERS.ownerB.id, "select public.create_business('Sur', 'Calle 2', 'sur') as id");
+  [{ id: orgA }] = await as<{ id: string }>(USERS.owner.id, "select public.create_business('Norte', 'Calle 1', 'norte', '2026-10-01') as id");
+  [{ id: orgB }] = await as<{ id: string }>(USERS.ownerB.id, "select public.create_business('Sur', 'Calle 2', 'sur', '2026-10-01') as id");
   [{ id: shopA }] = await as<{ id: string }>(USERS.owner.id, "select id from public.barbershops where organization_id = $1", [orgA]);
   [{ id: shopB }] = await as<{ id: string }>(USERS.ownerB.id, "select id from public.barbershops where organization_id = $1", [orgB]);
   await as(USERS.owner.id, "select * from public.add_worker_by_email($1, $2)", [orgA, USERS.worker.email]);
@@ -140,7 +140,7 @@ describe("get_public_barbershop", () => {
       await assert.rejects(as(null, `select * from public.${table}`), denied, table);
     }
     const calls = [
-      ["select public.create_business('A', 'B', 'abc')", []],
+      ["select public.create_business('A', 'B', 'abc', '2026-10-01')", []],
       ["select * from public.add_worker_by_email($1, 'x@y.pe')", [orgA]],
       ["select public.set_worker_active($1, $2, false)", [orgA, USERS.worker.id]],
       ["select * from public.list_team($1)", [orgA]],
