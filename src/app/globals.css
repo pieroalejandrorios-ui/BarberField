@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --background: #f7f7ee;
+  --foreground: #172c26;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand-canvas: #f7f7ee;
+  --color-brand-ink: #172c26;
+  --color-brand-hover: #2b493f;
+  --color-brand-muted: #4b5c4c;
+  --color-brand-line: #ccd4c3;
+  --color-brand-soft: #e6ebda;
+  --color-brand-accent: #e0edb2;
+  --color-brand-leaf: #58734b;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  html { scroll-padding-bottom: 7rem; }
+  h1, h2, h3 { text-wrap: balance; letter-spacing: -0.025em; }
+  input, select, textarea { accent-color: var(--color-brand-ink); }
+}
+
+@layer components {
+  .app-content :where(section, article, fieldset, ul, dl, div).border:not(.border-dashed) {
+    background-color: white;
+    box-shadow: 0 8px 28px -24px #172c2640;
+  }
+
+  .app-content :where(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea) {
+    background-color: white;
+    color: var(--foreground);
+    border-color: var(--color-brand-line);
+    border-radius: 0.75rem;
+  }
+}
+
+.fixed-cta {
+  position: fixed;
+  z-index: 40;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-brand-line);
+  background: #f7f7eef5;
+  backdrop-filter: blur(12px);
+}
+
+.fixed-cta > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+.fixed-cta a { width: 100%; }
+.fixed-cta-note { display: none; }
+
+@media (min-width: 640px) {
+  .fixed-cta-note { display: block; font-size: 0.875rem; color: var(--color-brand-muted); }
+  .fixed-cta a { width: auto; min-width: 12rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(a, button, input, textarea, select) { transition: background-color 160ms, border-color 160ms, box-shadow 160ms; }
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #6b8b5d;
+  outline-offset: 4px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  transform: translateY(-200%);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #172c26;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
